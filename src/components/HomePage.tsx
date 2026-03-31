@@ -7,6 +7,12 @@ const games = [
     description: "You think you can eyeball a fraction? Draw a lasso to eat exactly the right slice of pie. Five rounds, lowest score wins.",
     tag: 'estimation',
   },
+  {
+    slug: 'intricate-extricate',
+    title: 'intricate extricate',
+    description: 'Five vertices, seven edges, and a whole mess of crossings. Drag the dots until the graph is planar, then race the 60-second clock.',
+    tag: 'spatial',
+  },
 ]
 
 export default function HomePage() {

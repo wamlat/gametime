@@ -2,6 +2,7 @@ import { useLocation } from 'react-router-dom'
 
 const gameNames: Record<string, string> = {
   '/easy-as-pie': 'easy as pie',
+  '/intricate-extricate': 'intricate extricate',
 }
 
 export default function StatusBar() {
