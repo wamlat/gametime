@@ -120,6 +120,68 @@
   transform: none;
 }
 
+.reverb-complete-layout {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.reverb-sidebar {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid #1e1e1c;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.reverb-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 340px;
+  overflow: auto;
+}
+
+.reverb-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid #1e1e1c;
+}
+
+.reverb-history-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.reverb-history-round {
+  min-width: 28px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.reverb-history-word {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.reverb-sidebar-empty {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
 @media (max-width: 520px) {
   .reverb-duration-grid {
     grid-template-columns: 1fr;
@@ -129,5 +191,11 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+}
+
+@media (max-width: 860px) {
+  .reverb-complete-layout {
+    grid-template-columns: 1fr;
   }
 }

@@ -1,10 +1,18 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import './index.css'
-import { generatePrompt, getLengthForRound } from './logic'
+import { generatePromptForRound, getLengthForRound, MAX_LENGTH, MAX_ROUNDS } from './seed'
+import { buildChallengeUrl, buildShareUrl } from './shareUrl'
 
 type Phase = 'lobby' | 'revealing' | 'typing' | 'complete'
+type LossReason = 'incorrect' | 'timeout'
 
 const DURATIONS = [1, 2, 5] as const
+const ANSWER_SECONDS = 10
+
+interface ReverbProps {
+  seed: string
+  initialFlashSeconds: (typeof DURATIONS)[number]
+}
 
 function StatCard({ label, value, accent = false }: { label: string; value: string | number; accent?: boolean }) {
   return (
@@ -45,25 +53,38 @@ function StatCard({ label, value, accent = false }: { label: string; value: stri
   )
 }
 
-export default function Reverb() {
+export default function Reverb({ seed, initialFlashSeconds }: ReverbProps) {
   const [phase, setPhase] = useState<Phase>('lobby')
-  const [flashSeconds, setFlashSeconds] = useState<(typeof DURATIONS)[number]>(1)
+  const [flashSeconds, setFlashSeconds] = useState<(typeof DURATIONS)[number]>(initialFlashSeconds)
   const [round, setRound] = useState(0)
   const [prompt, setPrompt] = useState('')
   const [answer, setAnswer] = useState('')
+  const [correctPrompts, setCorrectPrompts] = useState<string[]>([])
   const [lastMiss, setLastMiss] = useState('')
+  const [lossReason, setLossReason] = useState<LossReason>('incorrect')
+  const [clearedAll, setClearedAll] = useState(false)
+  const [answerSecondsLeft, setAnswerSecondsLeft] = useState(ANSWER_SECONDS)
+  const [copied, setCopied] = useState<'results' | 'challenge' | null>(null)
 
-  const timeoutRef = useRef<number | null>(null)
+  const revealTimeoutRef = useRef<number | null>(null)
+  const answerTimerRef = useRef<number | null>(null)
+  const copiedTimeoutRef = useRef<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const targetLength = useMemo(() => getLengthForRound(round), [round])
-  const score = round
-  const longestClear = round > 0 ? getLengthForRound(round - 1) : 0
+  const score = correctPrompts.length
+  const longestClear = correctPrompts.length > 0 ? correctPrompts[correctPrompts.length - 1].length : 0
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current)
+      if (revealTimeoutRef.current !== null) {
+        window.clearTimeout(revealTimeoutRef.current)
+      }
+      if (answerTimerRef.current !== null) {
+        window.clearInterval(answerTimerRef.current)
+      }
+      if (copiedTimeoutRef.current !== null) {
+        window.clearTimeout(copiedTimeoutRef.current)
       }
     }
   }, [])
@@ -76,36 +97,92 @@ export default function Reverb() {
   }, [phase, prompt])
 
   function clearRevealTimeout() {
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
+    if (revealTimeoutRef.current !== null) {
+      window.clearTimeout(revealTimeoutRef.current)
+      revealTimeoutRef.current = null
     }
+  }
+
+  function clearAnswerTimer() {
+    if (answerTimerRef.current !== null) {
+      window.clearInterval(answerTimerRef.current)
+      answerTimerRef.current = null
+    }
+  }
+
+  function startAnswerTimer() {
+    clearAnswerTimer()
+    setAnswerSecondsLeft(ANSWER_SECONDS)
+
+    answerTimerRef.current = window.setInterval(() => {
+      setAnswerSecondsLeft((current) => {
+        if (current <= 1) {
+          clearAnswerTimer()
+          setLastMiss('')
+          setLossReason('timeout')
+          setPhase('complete')
+          return 0
+        }
+
+        return current - 1
+      })
+    }, 1000)
   }
 
   function beginRound(nextRound: number) {
     clearRevealTimeout()
-    const nextLength = getLengthForRound(nextRound)
-    const nextPrompt = generatePrompt(nextLength)
+    clearAnswerTimer()
+
+    const nextPrompt = generatePromptForRound(seed, nextRound)
 
     setRound(nextRound)
     setPrompt(nextPrompt)
     setAnswer('')
     setPhase('revealing')
+    setAnswerSecondsLeft(ANSWER_SECONDS)
 
-    timeoutRef.current = window.setTimeout(() => {
+    revealTimeoutRef.current = window.setTimeout(() => {
       setPhase('typing')
-      timeoutRef.current = null
+      startAnswerTimer()
+      revealTimeoutRef.current = null
     }, flashSeconds * 1000)
   }
 
   function startRun() {
+    setCopied(null)
+    setCorrectPrompts([])
     setLastMiss('')
+    setLossReason('incorrect')
+    setClearedAll(false)
     beginRound(0)
   }
 
   function handleAnswerChange(nextValue: string) {
     const sanitized = nextValue.toUpperCase().replace(/[^A-Z]/g, '').slice(0, targetLength)
     setAnswer(sanitized)
+  }
+
+  function finishCopy(type: 'results' | 'challenge') {
+    setCopied(type)
+    if (copiedTimeoutRef.current !== null) {
+      window.clearTimeout(copiedTimeoutRef.current)
+    }
+    copiedTimeoutRef.current = window.setTimeout(() => setCopied(null), 2000)
+  }
+
+  async function copyToClipboard(text: string, type: 'results' | 'challenge') {
+    try {
+      await navigator.clipboard.writeText(text)
+      finishCopy(type)
+    } catch {
+      const element = document.createElement('textarea')
+      element.value = text
+      document.body.appendChild(element)
+      element.select()
+      document.execCommand('copy')
+      document.body.removeChild(element)
+      finishCopy(type)
+    }
   }
 
   function submitAnswer(event?: FormEvent<HTMLFormElement>) {
@@ -115,12 +192,24 @@ export default function Reverb() {
       return
     }
 
+    clearAnswerTimer()
+
     if (answer === prompt) {
+      const nextCorrectPrompts = [...correctPrompts, prompt]
+      setCorrectPrompts(nextCorrectPrompts)
+
+      if (nextCorrectPrompts.length >= MAX_ROUNDS) {
+        setClearedAll(true)
+        setPhase('complete')
+        return
+      }
+
       beginRound(round + 1)
       return
     }
 
     setLastMiss(answer)
+    setLossReason('incorrect')
     setPhase('complete')
   }
 
@@ -134,7 +223,7 @@ export default function Reverb() {
             exactly after it disappears. Every correct answer makes the next string one character longer.
           </p>
           <p className="eap-lobby-meta">
-            Category: verbal · solo only · run ends on your first incorrect string
+            Category: verbal · solo or challenge mode · 10-second answer timer · max string length 50
           </p>
 
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -157,7 +246,16 @@ export default function Reverb() {
 
           <div className="eap-mode-buttons">
             <button className="eap-btn-primary" onClick={startRun}>
-              Start Run
+              Solo
+            </button>
+            <button
+              className="eap-btn-secondary"
+              onClick={() => {
+                navigator.clipboard.writeText(buildChallengeUrl(seed, flashSeconds)).catch(() => {})
+                startRun()
+              }}
+            >
+              Copy &amp; Challenge
             </button>
           </div>
         </div>
@@ -168,7 +266,7 @@ export default function Reverb() {
   if (phase === 'complete') {
     return (
       <div className="eap-wrapper">
-        <div className="eap-card" style={{ maxWidth: 560 }}>
+        <div className="eap-card" style={{ maxWidth: 880 }}>
           <div style={{ width: '100%', textAlign: 'center' }}>
             <div
               style={{
@@ -194,7 +292,11 @@ export default function Reverb() {
               {longestClear}
             </div>
             <p className="eap-lobby-desc" style={{ marginTop: 14, textAlign: 'center' }}>
-              letters remembered before the miss.
+              {clearedAll
+                ? 'you cleared the full 50-letter ladder.'
+                : lossReason === 'timeout'
+                  ? 'letters remembered before the answer clock expired.'
+                  : 'letters remembered before the first wrong answer.'}
             </p>
           </div>
 
@@ -207,20 +309,79 @@ export default function Reverb() {
             }}
           >
             <StatCard label="Score" value={score} accent />
-            <StatCard label="Mode" value="Solo" />
             <StatCard label="Flash" value={`${flashSeconds}s`} />
+            <StatCard label="Result" value={clearedAll ? 'Perfect' : lossReason === 'timeout' ? 'Time' : 'Miss'} />
           </div>
 
-          <div className="reverb-stage" style={{ minHeight: 'unset' }}>
-            <div className="reverb-stage-label">final round</div>
-            <div className="reverb-helper-row">
-              <span>target {prompt}</span>
-              <span>your answer {lastMiss || 'none'}</span>
+          <div className="reverb-complete-layout">
+            <div className="reverb-stage" style={{ minHeight: 'unset' }}>
+              <div className="reverb-stage-label">{clearedAll ? 'full clear' : 'final round'}</div>
+              <div className="reverb-helper-row">
+                <span>{clearedAll ? `max length ${MAX_LENGTH}` : `target ${prompt}`}</span>
+                <span>
+                  {clearedAll ? 'every string solved' : lossReason === 'timeout' ? 'time ran out' : `your answer ${lastMiss || 'none'}`}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                  gap: 10,
+                }}
+              >
+                <StatCard label="Needed Length" value={clearedAll ? MAX_LENGTH : prompt.length} />
+                <StatCard label="Answer Timer" value={`${ANSWER_SECONDS}s`} />
+              </div>
             </div>
+
+            <aside className="reverb-sidebar">
+              <div className="reverb-stage-label" style={{ textAlign: 'left' }}>
+                cleared strings
+              </div>
+              {correctPrompts.length === 0 ? (
+                <div className="reverb-sidebar-empty">No strings cleared this run yet.</div>
+              ) : (
+                <div className="reverb-history-list">
+                  {correctPrompts.map((word, index) => (
+                    <div key={`${index}-${word}`} className="reverb-history-item">
+                      <span className="reverb-history-round">#{index + 1}</span>
+                      <span className="reverb-history-word">{word}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </aside>
           </div>
 
-          <div className="eap-mode-buttons">
-            <button className="eap-btn-primary" onClick={startRun}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 320 }}>
+            <button
+              className="eap-btn-primary"
+              onClick={() => copyToClipboard(buildShareUrl(seed, flashSeconds, score), 'results')}
+            >
+              {copied === 'results' ? 'Copied!' : 'Share My Results'}
+            </button>
+
+            <button
+              className="eap-btn-secondary"
+              onClick={() => copyToClipboard(buildChallengeUrl(seed, flashSeconds), 'challenge')}
+            >
+              {copied === 'challenge' ? 'Copied!' : 'Challenge a Friend'}
+            </button>
+
+            <button
+              onClick={startRun}
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: 11,
+                color: '#444442',
+                background: 'transparent',
+                border: 'none',
+                padding: '6px',
+                cursor: 'pointer',
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
               Play Again
             </button>
           </div>
@@ -236,13 +397,14 @@ export default function Reverb() {
           style={{
             width: '100%',
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
             gap: 10,
           }}
         >
           <StatCard label="Score" value={score} accent />
           <StatCard label="Length" value={targetLength} />
           <StatCard label="Flash" value={`${flashSeconds}s`} />
+          <StatCard label="Timer" value={phase === 'typing' ? `${answerSecondsLeft}s` : 'Standby'} />
         </div>
 
         <form onSubmit={submitAnswer} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -269,7 +431,7 @@ export default function Reverb() {
               />
               <div className="reverb-helper-row">
                 <span>{phase === 'revealing' ? `visible for ${flashSeconds}s` : `${answer.length}/${targetLength} letters`}</span>
-                <span>letters only</span>
+                <span>{phase === 'typing' ? `${answerSecondsLeft}s left` : 'letters only'}</span>
               </div>
             </div>
           </div>
@@ -289,7 +451,7 @@ export default function Reverb() {
         <p className="eap-instruction">
           {phase === 'revealing'
             ? 'watch closely. the string disappears when the flash timer ends'
-            : 'submission unlocks only when your answer matches the required length'}
+            : 'you have 10 seconds to answer, and submission unlocks only at the exact length'}
         </p>
       </div>
     </div>
