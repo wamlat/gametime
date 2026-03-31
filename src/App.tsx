@@ -8,6 +8,7 @@ const IntricateExtricateRoute = lazy(() => import('./games/intricate-extricate/i
 const FisheyeRoute = lazy(() => import('./games/fisheye/index'))
 const TempoTapRoute = lazy(() => import('./games/tempo-tap/index'))
 const XornadoRoute = lazy(() => import('./games/xornado/index'))
+const ReverbRoute = lazy(() => import('./games/reverb/index'))
 
 export default function App() {
   return (
@@ -51,6 +52,14 @@ export default function App() {
           element={
             <Suspense fallback={<div style={{ height: '100vh', background: 'var(--color-bg)' }} />}>
               <XornadoRoute />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/reverb"
+          element={
+            <Suspense fallback={<div style={{ height: '100vh', background: 'var(--color-bg)' }} />}>
+              <ReverbRoute />
             </Suspense>
           }
         />

@@ -31,6 +31,12 @@ const games = [
     description: 'Two random five-bit binary numbers, one random logical operator, and sixty seconds to solve as many as you can.',
     tag: 'numerical',
   },
+  {
+    slug: 'reverb',
+    title: 'reverb',
+    description: 'Memorize a flashing string of letters, then type it back after it disappears. Every correct answer grows the string until your first miss ends the run.',
+    tag: 'verbal',
+  },
 ]
 
 export default function HomePage() {
