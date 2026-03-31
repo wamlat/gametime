@@ -1,0 +1,127 @@
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0 }
+  to   { opacity: 1 }
+}
+
+.eap-wrapper {
+  min-height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px var(--space-lg) 80px;
+}
+
+.eap-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-xl);
+  padding: 36px 36px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 620px;
+  width: 100%;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+/* Lobby card */
+.eap-lobby-title {
+  font-family: var(--font-display);
+  font-size: clamp(52px, 12vw, 80px);
+  color: var(--color-text);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-align: left;
+  width: 100%;
+}
+
+.eap-lobby-desc {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  color: var(--color-muted);
+  line-height: 1.65;
+  width: 100%;
+}
+
+.eap-lobby-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted);
+  letter-spacing: 0.08em;
+  width: 100%;
+}
+
+.eap-mode-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.eap-btn-primary {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 15px;
+  background: var(--color-bg);
+  color: var(--color-card);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 13px 20px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.eap-btn-primary:hover {
+  transform: scale(1.03);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.eap-btn-secondary {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 14px;
+  background: transparent;
+  color: var(--color-muted);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-md);
+  padding: 13px 20px;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.eap-btn-secondary:hover {
+  color: var(--color-text);
+  border-color: #555553;
+}
+
+.eap-instruction {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted);
+  letter-spacing: 0.06em;
+  text-align: center;
+  animation: fadeIn 400ms ease 300ms both;
+}
+
+@media (max-width: 520px) {
+  .eap-card {
+    padding: 28px 20px 24px;
+    border-radius: var(--radius-lg);
+  }
+}

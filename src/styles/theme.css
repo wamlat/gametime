@@ -1,0 +1,35 @@
+:root {
+  /* Colors */
+  --color-bg:           #FAF7F2;
+  --color-card:         #111110;
+  --color-card-border:  #252523;
+  --color-text:         #FAF7F2;
+  --color-muted:        #888882;
+  --color-accent:       #E8832A;
+  --color-accent-dim:   rgba(232, 131, 42, 0.18);
+  --color-success:      #72c472;
+  --color-danger:       #e85252;
+
+  /* Fonts */
+  --font-display: 'DM Serif Display', Georgia, serif;
+  --font-mono:    'DM Mono', 'Courier New', monospace;
+  --font-sans:    'DM Sans', system-ui, sans-serif;
+
+  /* Spacing */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  48px;
+
+  /* Radius */
+  --radius-sm:  6px;
+  --radius-md:  12px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-med:  300ms ease;
+  --transition-slow: 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
