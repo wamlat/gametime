@@ -166,7 +166,7 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
   }
 
   function goToFreshSeed() {
-    const nextSeed = generateUnusedSeed()
+    const nextSeed = generateUnusedSeed(seed)
     navigate(`/reverb?seed=${encodeURIComponent(nextSeed)}&flash=${flashSeconds}`)
   }
 

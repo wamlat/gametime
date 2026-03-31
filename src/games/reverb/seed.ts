@@ -78,10 +78,10 @@ export function markSeedAsPlayed(seed: string) {
   }
 }
 
-export function generateUnusedSeed() {
+export function generateUnusedSeed(excludedSeed?: string) {
   let nextSeed = generateRandomSeed()
 
-  while (hasPlayedSeed(nextSeed)) {
+  while (nextSeed === excludedSeed || hasPlayedSeed(nextSeed)) {
     nextSeed = generateRandomSeed()
   }
 
