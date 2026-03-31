@@ -13,6 +13,12 @@ const games = [
     description: 'Five vertices, seven edges, and a whole mess of crossings. Drag the dots until the graph is planar, then race the 60-second clock.',
     tag: 'spatial',
   },
+  {
+    slug: 'fisheye',
+    title: 'fisheye',
+    description: 'A single-player archery trial: read the fish eye from its reflection, set your angle and draw, and score by how close the arrow comes.',
+    tag: 'spatial',
+  },
 ]
 
 export default function HomePage() {

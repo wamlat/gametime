@@ -5,6 +5,7 @@ import StatusBar from './components/StatusBar'
 
 const EasyAsPieRoute = lazy(() => import('./games/easy-as-pie/index'))
 const IntricateExtricateRoute = lazy(() => import('./games/intricate-extricate/index'))
+const FisheyeRoute = lazy(() => import('./games/fisheye/index'))
 
 export default function App() {
   return (
@@ -24,6 +25,14 @@ export default function App() {
           element={
             <Suspense fallback={<div style={{ height: '100vh', background: 'var(--color-bg)' }} />}>
               <IntricateExtricateRoute />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/fisheye"
+          element={
+            <Suspense fallback={<div style={{ height: '100vh', background: 'var(--color-bg)' }} />}>
+              <FisheyeRoute />
             </Suspense>
           }
         />
