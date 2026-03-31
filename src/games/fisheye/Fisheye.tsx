@@ -6,6 +6,7 @@ import {
   BOARD_HEIGHT,
   BOARD_WIDTH,
   BOW_ORIGIN,
+  POND_CENTER,
   POWER_MAX,
   POWER_MIN,
   ROUND_COUNT,
@@ -13,6 +14,7 @@ import {
   evaluateShot,
   fishEyeForRound,
   generateRound,
+  pointInPond,
   sampleTrajectory,
 } from './logic'
 import type { Point, RoundSpec, ShotOutcome } from './logic'
@@ -148,6 +150,7 @@ export default function Fisheye() {
   const [results, setResults] = useState<RoundResult[]>([])
   const [lastShot, setLastShot] = useState<ShotOutcome | null>(null)
   const [flightIndex, setFlightIndex] = useState(0)
+  const [probePoint, setProbePoint] = useState<Point | null>(null)
 
   const eye = useMemo(() => fishEyeForRound(round), [round])
   const reflectedEye = useMemo(() => pondReflectionPoint(eye), [eye])
@@ -159,11 +162,19 @@ export default function Fisheye() {
   const currentArrowAngle = lastShot ? arrowAngle(lastShot.trajectory, Math.min(flightIndex, lastShot.trajectory.length - 1)) : angle
   const drawStrength = Math.round(((power - POWER_MIN) / (POWER_MAX - POWER_MIN)) * 100)
   const revealFish = phase === 'flying' || phase === 'result'
+  const projectedProbe = useMemo(() => {
+    if (!probePoint) return null
+    return {
+      x: probePoint.x,
+      y: WATERLINE_Y - ((probePoint.y - POND_CENTER.y) / 0.2),
+    }
+  }, [probePoint])
 
   useEffect(() => {
     if (phase !== 'aiming') return
     setLastShot(null)
     setFlightIndex(0)
+    setProbePoint(null)
   }, [phase, round])
 
   useEffect(() => {
@@ -209,6 +220,22 @@ export default function Fisheye() {
     setPhase('flying')
   }
 
+  function handleBoardPointerMove(event: React.PointerEvent<SVGSVGElement>) {
+    if (phase !== 'aiming') return
+
+    const rect = event.currentTarget.getBoundingClientRect()
+    const x = ((event.clientX - rect.left) / rect.width) * BOARD_WIDTH
+    const y = ((event.clientY - rect.top) / rect.height) * BOARD_HEIGHT
+    const nextPoint = { x, y }
+
+    if (pointInPond(nextPoint)) {
+      setProbePoint(nextPoint)
+      return
+    }
+
+    setProbePoint(null)
+  }
+
   function advanceRound() {
     if (roundIndex >= ROUND_COUNT - 1) {
       setPhase('complete')
@@ -234,7 +261,7 @@ export default function Fisheye() {
             shot.
           </p>
           <p className="eap-lobby-meta">
-            Single player only · five shots per run · the real fish only reveals after release
+            Single player only · five shots per run · use the pond to read the hidden fish height
           </p>
           <div className="eap-mode-buttons">
             <button className="eap-btn-primary" onClick={beginRun}>
@@ -339,6 +366,8 @@ export default function Fisheye() {
           <svg
             viewBox={`0 0 ${BOARD_WIDTH} ${BOARD_HEIGHT}`}
             style={{ width: '100%', height: '100%', display: 'block' }}
+            onPointerMove={handleBoardPointerMove}
+            onPointerLeave={() => setProbePoint(null)}
           >
             <defs>
               <radialGradient id="fish-wood" cx="40%" cy="40%">
@@ -395,6 +424,35 @@ export default function Fisheye() {
               opacity="0.35"
             />
 
+            {phase === 'aiming' && probePoint && projectedProbe && (
+              <>
+                <line
+                  x1={probePoint.x}
+                  y1={probePoint.y}
+                  x2={projectedProbe.x}
+                  y2={Math.max(52, projectedProbe.y)}
+                  stroke="rgba(165,220,255,0.34)"
+                  strokeWidth="1.5"
+                  strokeDasharray="5 8"
+                />
+                <circle
+                  cx={probePoint.x}
+                  cy={probePoint.y}
+                  r="7"
+                  fill="none"
+                  stroke="rgba(165,220,255,0.8)"
+                  strokeWidth="2"
+                />
+                <circle
+                  cx={projectedProbe.x}
+                  cy={Math.max(52, projectedProbe.y)}
+                  r="5"
+                  fill="rgba(165,220,255,0.88)"
+                  opacity="0.95"
+                />
+              </>
+            )}
+
             <path
               d={reflectionPath(round)}
               fill="rgba(206,164,112,0.2)"
@@ -440,14 +498,14 @@ export default function Fisheye() {
                   />
                   <text
                     x="7"
-                    y="-12"
+                    y="-8"
                     textAnchor="middle"
                     fontFamily="var(--font-mono)"
-                    fontSize="9"
-                    letterSpacing="0.12em"
-                    fill="rgba(255,255,255,0.68)"
+                    fontSize="8"
+                    letterSpacing="0.08em"
+                    fill="rgba(255,255,255,0.38)"
                   >
-                    DRAW
+                    HIGH
                   </text>
                   <text
                     x="7"
@@ -459,17 +517,6 @@ export default function Fisheye() {
                     fill="rgba(255,255,255,0.38)"
                   >
                     LOW
-                  </text>
-                  <text
-                    x="7"
-                    y="200"
-                    textAnchor="middle"
-                    fontFamily="var(--font-mono)"
-                    fontSize="8"
-                    letterSpacing="0.08em"
-                    fill="rgba(255,255,255,0.38)"
-                  >
-                    HIGH
                   </text>
                 </g>
               </>
@@ -573,7 +620,7 @@ export default function Fisheye() {
               </button>
             </div>
             <p className="eap-instruction">
-              watch the glowing eye in the water, use the short launch cue, and read the vertical draw meter on the right
+              hover the pond to probe the hidden height, use the short launch cue, and read the vertical draw meter on the right
             </p>
           </>
         )}

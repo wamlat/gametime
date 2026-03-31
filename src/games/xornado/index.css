@@ -1,0 +1,43 @@
+@import '../easy-as-pie/ui/EasyAsPie.css';
+
+.xornado-word {
+  font-family: var(--font-mono);
+  font-size: clamp(24px, 5vw, 36px);
+  letter-spacing: 0.22em;
+  text-align: center;
+  color: var(--color-text);
+  padding: 18px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.xornado-op {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 6vw, 42px);
+  letter-spacing: -0.03em;
+  color: var(--color-accent);
+}
+
+.xornado-input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: clamp(28px, 7vw, 44px);
+  letter-spacing: 0.28em;
+  text-align: center;
+  padding: 18px 20px;
+  outline: none;
+}
+
+.xornado-input::placeholder {
+  color: rgba(255, 255, 255, 0.18);
+}
+
+.xornado-input:focus {
+  border-color: rgba(232, 131, 42, 0.42);
+  box-shadow: 0 0 0 3px rgba(232, 131, 42, 0.12);
+}

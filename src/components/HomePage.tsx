@@ -19,6 +19,18 @@ const games = [
     description: 'A single-player archery trial: read the fish eye from its reflection, set your angle and draw, and score by how close the arrow comes.',
     tag: 'spatial',
   },
+  {
+    slug: 'tempo-tap',
+    title: 'tempo tap',
+    description: 'Hear a five-second rhythm sample and estimate its tempo in bpm. Five rounds, lowest total error wins.',
+    tag: 'estimation',
+  },
+  {
+    slug: 'xornado',
+    title: 'xornado',
+    description: 'Two random five-bit binary numbers, one random logical operator, and sixty seconds to solve as many as you can.',
+    tag: 'numerical',
+  },
 ]
 
 export default function HomePage() {

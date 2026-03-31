@@ -4,6 +4,8 @@ const gameNames: Record<string, string> = {
   '/easy-as-pie': 'easy as pie',
   '/intricate-extricate': 'intricate extricate',
   '/fisheye': 'fisheye',
+  '/tempo-tap': 'tempo tap',
+  '/xornado': 'xornado',
 }
 
 export default function StatusBar() {

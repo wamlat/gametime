@@ -30,6 +30,9 @@ export const ANGLE_MIN = -165
 export const ANGLE_MAX = -15
 export const POWER_MIN = 88
 export const POWER_MAX = 170
+export const POND_CENTER: Point = { x: 260, y: WATERLINE_Y + 68 }
+export const POND_INNER_RX = 154
+export const POND_INNER_RY = 29
 
 function randomBetween(min: number, max: number) {
   return min + Math.random() * (max - min)
@@ -49,7 +52,7 @@ export function generateCandidateRound(): RoundSpec {
   return {
     fishCenter: {
       x: fishCenterX,
-      y: randomBetween(104, 150),
+      y: randomBetween(92, 158),
     },
     fishWidth: width,
     fishHeight: randomBetween(44, 58),
@@ -84,6 +87,12 @@ export function sampleTrajectory(angleDeg: number, power: number, steps = 90) {
   }
 
   return points
+}
+
+export function pointInPond(point: Point) {
+  const dx = (point.x - POND_CENTER.x) / POND_INNER_RX
+  const dy = (point.y - POND_CENTER.y) / POND_INNER_RY
+  return dx * dx + dy * dy <= 1
 }
 
 function minDistanceToEye(round: RoundSpec, trajectory: Point[]) {
