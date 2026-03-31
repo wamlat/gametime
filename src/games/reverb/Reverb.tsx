@@ -404,7 +404,7 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
             </button>
 
             <button
-              onClick={startRun}
+              onClick={goToFreshSeed}
               style={{
                 fontFamily: 'var(--font-mono)',
                 fontSize: 11,
