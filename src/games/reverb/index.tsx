@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router-dom'
 import Reverb from './Reverb'
-import { generateRandomSeed } from './seed'
+import { generateUnusedSeed, hasPlayedSeed } from './seed'
 import { SharedResultsView } from './ui/SharedResultsView'
 
 export default function ReverbRoute() {
@@ -18,6 +18,6 @@ export default function ReverbRoute() {
     }
   }
 
-  const seed = seedParam ?? generateRandomSeed()
-  return <Reverb seed={seed} initialFlashSeconds={flashSeconds} />
+  const seed = seedParam ?? generateUnusedSeed()
+  return <Reverb key={`${seed}-${flashSeconds}`} seed={seed} initialFlashSeconds={flashSeconds} alreadyPlayed={hasPlayedSeed(seed)} />
 }

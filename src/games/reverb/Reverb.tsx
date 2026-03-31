@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './index.css'
-import { generatePromptForRound, getLengthForRound, MAX_LENGTH, MAX_ROUNDS } from './seed'
+import { generatePromptForRound, getLengthForRound, markSeedAsPlayed, MAX_LENGTH, MAX_ROUNDS, generateUnusedSeed } from './seed'
 import { buildChallengeUrl, buildShareUrl } from './shareUrl'
 
 type Phase = 'lobby' | 'revealing' | 'typing' | 'complete'
@@ -12,6 +13,7 @@ const ANSWER_SECONDS = 10
 interface ReverbProps {
   seed: string
   initialFlashSeconds: (typeof DURATIONS)[number]
+  alreadyPlayed: boolean
 }
 
 function StatCard({ label, value, accent = false }: { label: string; value: string | number; accent?: boolean }) {
@@ -53,7 +55,8 @@ function StatCard({ label, value, accent = false }: { label: string; value: stri
   )
 }
 
-export default function Reverb({ seed, initialFlashSeconds }: ReverbProps) {
+export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: ReverbProps) {
+  const navigate = useNavigate()
   const [phase, setPhase] = useState<Phase>('lobby')
   const [flashSeconds, setFlashSeconds] = useState<(typeof DURATIONS)[number]>(initialFlashSeconds)
   const [round, setRound] = useState(0)
@@ -149,12 +152,22 @@ export default function Reverb({ seed, initialFlashSeconds }: ReverbProps) {
   }
 
   function startRun() {
+    if (alreadyPlayed) {
+      return
+    }
+
+    markSeedAsPlayed(seed)
     setCopied(null)
     setCorrectPrompts([])
     setLastMiss('')
     setLossReason('incorrect')
     setClearedAll(false)
     beginRound(0)
+  }
+
+  function goToFreshSeed() {
+    const nextSeed = generateUnusedSeed()
+    navigate(`/reverb?seed=${encodeURIComponent(nextSeed)}&flash=${flashSeconds}`)
   }
 
   function handleAnswerChange(nextValue: string) {
@@ -214,6 +227,28 @@ export default function Reverb({ seed, initialFlashSeconds }: ReverbProps) {
   }
 
   if (phase === 'lobby') {
+    if (alreadyPlayed) {
+      return (
+        <div className="eap-wrapper">
+          <div className="eap-card" style={{ maxWidth: 560 }}>
+            <h1 className="eap-lobby-title">reverb.</h1>
+            <p className="eap-lobby-desc">
+              This browser has already played seed <strong>{seed}</strong>. Challenge seeds are one-and-done here, so
+              a replay needs a fresh seed.
+            </p>
+            <p className="eap-lobby-meta">
+              Category: verbal · one play per seed per browser · flash {flashSeconds}s
+            </p>
+            <div className="eap-mode-buttons">
+              <button className="eap-btn-primary" onClick={goToFreshSeed}>
+                Fresh Seed
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="eap-wrapper">
         <div className="eap-card" style={{ maxWidth: 560 }}>
@@ -382,7 +417,7 @@ export default function Reverb({ seed, initialFlashSeconds }: ReverbProps) {
                 textTransform: 'uppercase',
               }}
             >
-              Play Again
+              Fresh Seed
             </button>
           </div>
         </div>
