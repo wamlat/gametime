@@ -89,16 +89,12 @@ export function PieCanvas({
     return () => cancelAnimationFrame(rafRef.current)
   }, [gameState.currentLasso, gameState.phase, transform])
 
-  const { startDraw, continueDraw, endDraw, cancelDraw } = useLasso(dispatch, getViewport)
+  const { startDraw, continueDraw, endDraw } = useLasso(dispatch, getViewport)
 
   const canInteract =
     gameState.phase === 'idle' ||
     gameState.phase === 'drawing' ||
     gameState.phase === 'confirming'
-
-  const handleMouseLeave = useCallback(() => {
-    if (gameState.phase === 'drawing') endDraw()
-  }, [gameState.phase, endDraw])
 
   return (
     <div
@@ -132,7 +128,6 @@ export function PieCanvas({
         onMouseDown={canInteract ? startDraw : undefined}
         onMouseMove={canInteract ? continueDraw : undefined}
         onMouseUp={canInteract ? endDraw : undefined}
-        onMouseLeave={handleMouseLeave}
         onTouchStart={canInteract ? startDraw : undefined}
         onTouchMove={canInteract ? continueDraw : undefined}
         onTouchEnd={canInteract ? endDraw : undefined}

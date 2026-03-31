@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useEffect } from 'react'
 import type { Dispatch } from 'react'
 import type { Point } from '../types'
 import { dist, checkSelfIntersection } from '../canvas/geometry'
@@ -24,14 +24,29 @@ function domToLogical(
 ): Point {
   const rect = canvas.getBoundingClientRect()
   const dpr = window.devicePixelRatio || 1
-  // DOM coords → canvas pixel coords
   const canvasPxX = (clientX - rect.left) * dpr
   const canvasPxY = (clientY - rect.top) * dpr
-  // Canvas pixel coords → logical 600×600 coords (invert viewport transform)
+
   return {
     x: (canvasPxX - vp.tx) / vp.scale,
     y: (canvasPxY - vp.ty) / vp.scale,
   }
+}
+
+function getClientPoint(
+  e:
+    | React.MouseEvent<HTMLCanvasElement>
+    | React.TouchEvent<HTMLCanvasElement>
+    | MouseEvent
+    | TouchEvent
+) {
+  if ('touches' in e) {
+    const touch = e.touches[0] ?? e.changedTouches[0]
+    if (!touch) return null
+    return { clientX: touch.clientX, clientY: touch.clientY }
+  }
+
+  return { clientX: e.clientX, clientY: e.clientY }
 }
 
 export function useLasso(
@@ -40,38 +55,31 @@ export function useLasso(
 ) {
   const isDrawing = useRef(false)
   const pathRef = useRef<Point[]>([])
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
-  const startDraw = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-      e.preventDefault()
-      const canvas = e.currentTarget
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+  const finishDraw = useCallback(() => {
+    if (!isDrawing.current) return
+
+    isDrawing.current = false
+    pathRef.current = []
+    canvasRef.current = null
+    dispatch({ type: 'END_DRAW' })
+  }, [dispatch])
+
+  const appendPoint = useCallback(
+    (clientX: number, clientY: number) => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+
       const pt = domToLogical(clientX, clientY, canvas, getViewport())
-      isDrawing.current = true
-      pathRef.current = [pt]
-      dispatch({ type: 'START_DRAW', point: pt })
-    },
-    [dispatch, getViewport]
-  )
-
-  const continueDraw = useCallback(
-    (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-      if (!isDrawing.current) return
-      e.preventDefault()
-      const canvas = e.currentTarget
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
-      const pt = domToLogical(clientX, clientY, canvas, getViewport())
-
       const last = pathRef.current[pathRef.current.length - 1]
-      if (dist(pt, last) < 3) return
+      if (!last || dist(pt, last) < 3) return
 
-      // Check for self-intersection — if found, auto-close at intersection point
       const check = checkSelfIntersection(pathRef.current, pt)
       if (check.intersects) {
         isDrawing.current = false
         pathRef.current = check.trimmedPath
+        canvasRef.current = null
         dispatch({ type: 'CLOSE_LASSO', path: check.trimmedPath })
         return
       }
@@ -82,17 +90,84 @@ export function useLasso(
     [dispatch, getViewport]
   )
 
+  const startDraw = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+      e.preventDefault()
+
+      const point = getClientPoint(e)
+      if (!point) return
+
+      const canvas = e.currentTarget
+      const pt = domToLogical(point.clientX, point.clientY, canvas, getViewport())
+
+      canvasRef.current = canvas
+      isDrawing.current = true
+      pathRef.current = [pt]
+      dispatch({ type: 'START_DRAW', point: pt })
+    },
+    [dispatch, getViewport]
+  )
+
+  const continueDraw = useCallback(
+    (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+      if (!isDrawing.current) return
+
+      e.preventDefault()
+      canvasRef.current = e.currentTarget
+
+      const point = getClientPoint(e)
+      if (!point) return
+
+      appendPoint(point.clientX, point.clientY)
+    },
+    [appendPoint]
+  )
+
   const endDraw = useCallback(() => {
-    if (!isDrawing.current) return
-    isDrawing.current = false
-    dispatch({ type: 'END_DRAW' })
-  }, [dispatch])
+    finishDraw()
+  }, [finishDraw])
 
   const cancelDraw = useCallback(() => {
     isDrawing.current = false
     pathRef.current = []
+    canvasRef.current = null
     dispatch({ type: 'CANCEL_DRAW' })
   }, [dispatch])
+
+  useEffect(() => {
+    function handleMouseMove(e: MouseEvent) {
+      if (!isDrawing.current) return
+      appendPoint(e.clientX, e.clientY)
+    }
+
+    function handleTouchMove(e: TouchEvent) {
+      if (!isDrawing.current) return
+
+      const point = getClientPoint(e)
+      if (!point) return
+
+      e.preventDefault()
+      appendPoint(point.clientX, point.clientY)
+    }
+
+    function handlePointerRelease() {
+      finishDraw()
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handlePointerRelease)
+    window.addEventListener('touchmove', handleTouchMove, { passive: false })
+    window.addEventListener('touchend', handlePointerRelease)
+    window.addEventListener('touchcancel', handlePointerRelease)
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handlePointerRelease)
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchend', handlePointerRelease)
+      window.removeEventListener('touchcancel', handlePointerRelease)
+    }
+  }, [appendPoint, finishDraw])
 
   return { startDraw, continueDraw, endDraw, cancelDraw }
 }
