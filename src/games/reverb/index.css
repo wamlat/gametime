@@ -70,6 +70,13 @@
   word-break: break-word;
 }
 
+.reverb-prompt.reverb-prompt-compact {
+  font-size: clamp(18px, 4.2vw, 30px);
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+  word-break: normal;
+}
+
 .reverb-prompt.is-hidden {
   color: rgba(255, 255, 255, 0.14);
 }
@@ -87,6 +94,13 @@
   padding: 18px 20px;
   outline: none;
   text-transform: uppercase;
+}
+
+.reverb-answer.reverb-answer-compact {
+  font-size: clamp(18px, 4.4vw, 28px);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  padding-inline: 14px;
 }
 
 .reverb-answer::placeholder {

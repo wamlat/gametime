@@ -55,6 +55,14 @@ function StatCard({ label, value, accent = false }: { label: string; value: stri
   )
 }
 
+function getScoreForCorrectPrompts(correctPrompts: string[]) {
+  if (correctPrompts.length === 0) {
+    return 0
+  }
+
+  return correctPrompts[correctPrompts.length - 1].length
+}
+
 export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: ReverbProps) {
   const navigate = useNavigate()
   const [phase, setPhase] = useState<Phase>('lobby')
@@ -75,7 +83,8 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
   const inputRef = useRef<HTMLInputElement>(null)
 
   const targetLength = useMemo(() => getLengthForRound(round), [round])
-  const score = correctPrompts.length
+  const usesCompactLayout = targetLength >= 13
+  const score = getScoreForCorrectPrompts(correctPrompts)
   const longestClear = correctPrompts.length > 0 ? correctPrompts[correctPrompts.length - 1].length : 0
 
   useEffect(() => {
@@ -448,14 +457,14 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
               {phase === 'revealing' ? 'memorize the string' : 'type it back exactly'}
             </div>
 
-            <div className={`reverb-prompt${phase === 'typing' ? ' is-hidden' : ''}`}>
+            <div className={`reverb-prompt${usesCompactLayout ? ' reverb-prompt-compact' : ''}${phase === 'typing' ? ' is-hidden' : ''}`}>
               {phase === 'revealing' ? prompt : '?'.repeat(targetLength)}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <input
                 ref={inputRef}
-                className="reverb-answer"
+                className={`reverb-answer${usesCompactLayout ? ' reverb-answer-compact' : ''}`}
                 value={answer}
                 onChange={(event) => handleAnswerChange(event.target.value)}
                 placeholder={'_'.repeat(Math.max(3, targetLength))}
