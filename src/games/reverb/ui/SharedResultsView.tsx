@@ -6,14 +6,15 @@ interface Props {
   seed: string
   flashSeconds: number
   score: number
+  mode: 'random' | 'dictionary'
 }
 
-export function SharedResultsView({ seed, flashSeconds, score }: Props) {
+export function SharedResultsView({ seed, flashSeconds, score, mode }: Props) {
   const [copied, setCopied] = useState(false)
 
   async function copyChallenge() {
     try {
-      await navigator.clipboard.writeText(buildChallengeUrl(seed, flashSeconds))
+      await navigator.clipboard.writeText(buildChallengeUrl(seed, flashSeconds, mode))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -115,7 +116,7 @@ export function SharedResultsView({ seed, flashSeconds, score }: Props) {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
           <Link
-            to={`/reverb?seed=${encodeURIComponent(seed)}&flash=${flashSeconds}`}
+            to={`/reverb?seed=${encodeURIComponent(seed)}&flash=${flashSeconds}&mode=${mode}`}
             style={{
               fontFamily: 'var(--font-sans)',
               fontWeight: 700,

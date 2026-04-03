@@ -16,7 +16,7 @@ export default function ReverbRoute() {
     const score = Number(scoreParam)
 
     if (Number.isFinite(score) && score >= 0) {
-      return <SharedResultsView seed={seedParam} flashSeconds={flashSeconds} score={score} />
+      return <SharedResultsView seed={seedParam} flashSeconds={flashSeconds} score={score} mode={initialMode} />
     }
   }
 
