@@ -1,18 +1,28 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './index.css'
-import { generatePromptForRound, getLengthForRound, markSeedAsPlayed, MAX_LENGTH, MAX_ROUNDS, generateUnusedSeed } from './seed'
+import { generatePromptForRound, generateDictPromptForRound, getLengthForRound, markSeedAsPlayed, MAX_LENGTH, MAX_ROUNDS, DICT_MAX_LENGTH, DICT_MAX_ROUNDS, generateUnusedSeed } from './seed'
 import { buildChallengeUrl, buildShareUrl } from './shareUrl'
+import datasetRaw from './dataset.txt?raw'
 
 type Phase = 'lobby' | 'revealing' | 'typing' | 'complete'
 type LossReason = 'incorrect' | 'timeout'
+type Mode = 'random' | 'dictionary'
 
 const DURATIONS = [1, 2, 5] as const
 const ANSWER_SECONDS = 10
 
+const WORDS_BY_LENGTH: Map<number, string[]> = new Map()
+for (const word of datasetRaw.split('\n').map(w => w.trim()).filter(w => w.length > 0)) {
+  const len = word.length
+  if (!WORDS_BY_LENGTH.has(len)) WORDS_BY_LENGTH.set(len, [])
+  WORDS_BY_LENGTH.get(len)!.push(word)
+}
+
 interface ReverbProps {
   seed: string
   initialFlashSeconds: (typeof DURATIONS)[number]
+  initialMode: Mode
   alreadyPlayed: boolean
 }
 
@@ -63,10 +73,11 @@ function getScoreForCorrectPrompts(correctPrompts: string[]) {
   return correctPrompts[correctPrompts.length - 1].length
 }
 
-export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: ReverbProps) {
+export default function Reverb({ seed, initialFlashSeconds, initialMode, alreadyPlayed }: ReverbProps) {
   const navigate = useNavigate()
   const [phase, setPhase] = useState<Phase>('lobby')
   const [flashSeconds, setFlashSeconds] = useState<(typeof DURATIONS)[number]>(initialFlashSeconds)
+  const [mode, setMode] = useState<Mode>(initialMode)
   const [round, setRound] = useState(0)
   const [prompt, setPrompt] = useState('')
   const [answer, setAnswer] = useState('')
@@ -82,6 +93,8 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
   const copiedTimeoutRef = useRef<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const maxRounds = mode === 'dictionary' ? DICT_MAX_ROUNDS : MAX_ROUNDS
+  const maxLength = mode === 'dictionary' ? DICT_MAX_LENGTH : MAX_LENGTH
   const targetLength = useMemo(() => getLengthForRound(round), [round])
   const usesCompactLayout = targetLength >= 13
   const score = getScoreForCorrectPrompts(correctPrompts)
@@ -145,7 +158,9 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
     clearRevealTimeout()
     clearAnswerTimer()
 
-    const nextPrompt = generatePromptForRound(seed, nextRound)
+    const nextPrompt = mode === 'dictionary'
+      ? generateDictPromptForRound(seed, nextRound, WORDS_BY_LENGTH)
+      : generatePromptForRound(seed, nextRound)
 
     setRound(nextRound)
     setPrompt(nextPrompt)
@@ -176,11 +191,13 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
 
   function goToFreshSeed() {
     const nextSeed = generateUnusedSeed(seed)
-    navigate(`/reverb?seed=${encodeURIComponent(nextSeed)}&flash=${flashSeconds}`)
+    navigate(`/reverb?seed=${encodeURIComponent(nextSeed)}&flash=${flashSeconds}&mode=${mode}`)
   }
 
   function handleAnswerChange(nextValue: string) {
-    const sanitized = nextValue.toUpperCase().replace(/[^A-Z]/g, '').slice(0, targetLength)
+    const sanitized = mode === 'dictionary'
+      ? nextValue.replace(/[^A-Za-z]/g, '').slice(0, targetLength)
+      : nextValue.toUpperCase().replace(/[^A-Z]/g, '').slice(0, targetLength)
     setAnswer(sanitized)
   }
 
@@ -216,11 +233,15 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
 
     clearAnswerTimer()
 
-    if (answer === prompt) {
+    const isCorrect = mode === 'dictionary'
+      ? answer.toLowerCase() === prompt.toLowerCase()
+      : answer === prompt
+
+    if (isCorrect) {
       const nextCorrectPrompts = [...correctPrompts, prompt]
       setCorrectPrompts(nextCorrectPrompts)
 
-      if (nextCorrectPrompts.length >= MAX_ROUNDS) {
+      if (nextCorrectPrompts.length >= maxRounds) {
         setClearedAll(true)
         setPhase('complete')
         return
@@ -267,8 +288,30 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
             exactly after it disappears. Every correct answer makes the next string one character longer.
           </p>
           <p className="eap-lobby-meta">
-            Category: verbal · solo or challenge mode · 10-second answer timer · max string length 50
+            Category: verbal · solo or challenge mode · 10-second answer timer · max string length {mode === 'dictionary' ? DICT_MAX_LENGTH : MAX_LENGTH}
           </p>
+
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="reverb-stage-label" style={{ textAlign: 'left' }}>
+              word mode
+            </div>
+            <div className="reverb-duration-grid">
+              <button
+                className={`reverb-duration-button${mode === 'random' ? ' is-active' : ''}`}
+                onClick={() => setMode('random')}
+                type="button"
+              >
+                random
+              </button>
+              <button
+                className={`reverb-duration-button${mode === 'dictionary' ? ' is-active' : ''}`}
+                onClick={() => setMode('dictionary')}
+                type="button"
+              >
+                dictionary
+              </button>
+            </div>
+          </div>
 
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div className="reverb-stage-label" style={{ textAlign: 'left' }}>
@@ -295,7 +338,7 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
             <button
               className="eap-btn-secondary"
               onClick={() => {
-                navigator.clipboard.writeText(buildChallengeUrl(seed, flashSeconds)).catch(() => {})
+                navigator.clipboard.writeText(buildChallengeUrl(seed, flashSeconds, mode)).catch(() => {})
                 startRun()
               }}
             >
@@ -337,7 +380,7 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
             </div>
             <p className="eap-lobby-desc" style={{ marginTop: 14, textAlign: 'center' }}>
               {clearedAll
-                ? 'you cleared the full 50-letter ladder.'
+                ? `you cleared the full ${maxLength}-letter ladder.`
                 : lossReason === 'timeout'
                   ? 'letters remembered before the answer clock expired.'
                   : 'letters remembered before the first wrong answer.'}
@@ -361,7 +404,7 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
             <div className="reverb-stage" style={{ minHeight: 'unset' }}>
               <div className="reverb-stage-label">{clearedAll ? 'full clear' : 'final round'}</div>
               <div className="reverb-helper-row">
-                <span>{clearedAll ? `max length ${MAX_LENGTH}` : `target ${prompt}`}</span>
+                <span>{clearedAll ? `max length ${maxLength}` : `target ${prompt}`}</span>
                 <span>
                   {clearedAll ? 'every string solved' : lossReason === 'timeout' ? 'time ran out' : `your answer ${lastMiss || 'none'}`}
                 </span>
@@ -373,7 +416,7 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
                   gap: 10,
                 }}
               >
-                <StatCard label="Needed Length" value={clearedAll ? MAX_LENGTH : prompt.length} />
+                <StatCard label="Needed Length" value={clearedAll ? maxLength : prompt.length} />
                 <StatCard label="Answer Timer" value={`${ANSWER_SECONDS}s`} />
               </div>
             </div>
@@ -400,14 +443,14 @@ export default function Reverb({ seed, initialFlashSeconds, alreadyPlayed }: Rev
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', maxWidth: 320 }}>
             <button
               className="eap-btn-primary"
-              onClick={() => copyToClipboard(buildShareUrl(seed, flashSeconds, score), 'results')}
+              onClick={() => copyToClipboard(buildShareUrl(seed, flashSeconds, score, mode), 'results')}
             >
               {copied === 'results' ? 'Copied!' : 'Share My Results'}
             </button>
 
             <button
               className="eap-btn-secondary"
-              onClick={() => copyToClipboard(buildChallengeUrl(seed, flashSeconds), 'challenge')}
+              onClick={() => copyToClipboard(buildChallengeUrl(seed, flashSeconds, mode), 'challenge')}
             >
               {copied === 'challenge' ? 'Copied!' : 'Challenge a Friend'}
             </button>

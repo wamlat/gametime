@@ -9,6 +9,8 @@ export default function ReverbRoute() {
   const scoreParam = searchParams.get('score')
   const flashParam = Number(searchParams.get('flash') ?? '1')
   const flashSeconds = flashParam === 2 || flashParam === 5 ? flashParam : 1
+  const modeParam = searchParams.get('mode')
+  const initialMode: 'random' | 'dictionary' = modeParam === 'dictionary' ? 'dictionary' : 'random'
 
   if (seedParam && scoreParam) {
     const score = Number(scoreParam)
@@ -19,5 +21,5 @@ export default function ReverbRoute() {
   }
 
   const seed = seedParam ?? generateUnusedSeed()
-  return <Reverb key={`${seed}-${flashSeconds}`} seed={seed} initialFlashSeconds={flashSeconds} alreadyPlayed={hasPlayedSeed(seed)} />
+  return <Reverb key={`${seed}-${flashSeconds}-${initialMode}`} seed={seed} initialFlashSeconds={flashSeconds} initialMode={initialMode} alreadyPlayed={hasPlayedSeed(seed)} />
 }

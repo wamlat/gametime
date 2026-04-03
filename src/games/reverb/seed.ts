@@ -2,6 +2,8 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const START_LENGTH = 3
 export const MAX_LENGTH = 50
 export const MAX_ROUNDS = MAX_LENGTH - START_LENGTH + 1
+export const DICT_MAX_LENGTH = 25
+export const DICT_MAX_ROUNDS = DICT_MAX_LENGTH - START_LENGTH + 1
 const PLAYED_SEEDS_KEY = 'gametime:reverb:played-seeds'
 
 function fnv1aHash(value: string): number {
@@ -76,6 +78,16 @@ export function markSeedAsPlayed(seed: string) {
   } catch {
     /* ignore */
   }
+}
+
+export function generateDictPromptForRound(seed: string, round: number, wordsByLength: Map<number, string[]>): string {
+  const length = getLengthForRound(round)
+  const words = wordsByLength.get(length) ?? []
+  if (words.length === 0) {
+    return generatePromptForRound(seed, round)
+  }
+  const rand = mulberry32(fnv1aHash(`${seed}:dict:${round}`))
+  return words[Math.floor(rand() * words.length)]
 }
 
 export function generateUnusedSeed(excludedSeed?: string) {
