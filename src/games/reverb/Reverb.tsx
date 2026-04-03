@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import './index.css'
 import { generatePromptForRound, generateDictPromptForRound, getLengthForRound, markSeedAsPlayed, MAX_LENGTH, MAX_ROUNDS, DICT_MAX_LENGTH, DICT_MAX_ROUNDS, generateUnusedSeed } from './seed'
 import { buildChallengeUrl, buildShareUrl } from './shareUrl'
-import datasetRaw from './dataset.txt?raw'
+import dataset from './dataset.json'
 
 type Phase = 'lobby' | 'revealing' | 'typing' | 'complete'
 type LossReason = 'incorrect' | 'timeout'
@@ -13,10 +13,11 @@ const DURATIONS = [1, 2, 5] as const
 const ANSWER_SECONDS = 10
 
 const WORDS_BY_LENGTH: Map<number, string[]> = new Map()
-for (const word of datasetRaw.split('\n').map(w => w.trim()).filter(w => w.length > 0)) {
-  const len = word.length
+for (const word of dataset.words) {
+  const upper = word.toUpperCase()
+  const len = upper.length
   if (!WORDS_BY_LENGTH.has(len)) WORDS_BY_LENGTH.set(len, [])
-  WORDS_BY_LENGTH.get(len)!.push(word)
+  WORDS_BY_LENGTH.get(len)!.push(upper)
 }
 
 interface ReverbProps {
