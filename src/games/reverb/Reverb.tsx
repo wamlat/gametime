@@ -1,13 +1,13 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './index.css'
-import { generatePromptForRound, generateDictPromptForRound, getLengthForRound, markSeedAsPlayed, MAX_LENGTH, MAX_ROUNDS, DICT_MAX_LENGTH, DICT_MAX_ROUNDS, generateUnusedSeed } from './seed'
+import { generatePromptForRound, generateVowellessPromptForRound, generateDictPromptForRound, getLengthForRound, markSeedAsPlayed, MAX_LENGTH, MAX_ROUNDS, DICT_MAX_LENGTH, DICT_MAX_ROUNDS, generateUnusedSeed } from './seed'
 import { buildChallengeUrl, buildShareUrl } from './shareUrl'
 import dataset from './dataset.json'
 
 type Phase = 'lobby' | 'revealing' | 'typing' | 'complete'
 type LossReason = 'incorrect' | 'timeout'
-type Mode = 'random' | 'dictionary'
+type Mode = 'random' | 'dictionary' | 'vowelless'
 
 const DURATIONS = [0.5, 1, 2] as const
 const ANSWER_SECONDS = 10
@@ -161,7 +161,9 @@ export default function Reverb({ seed, initialFlashSeconds, initialMode, already
 
     const nextPrompt = mode === 'dictionary'
       ? generateDictPromptForRound(seed, nextRound, WORDS_BY_LENGTH)
-      : generatePromptForRound(seed, nextRound)
+      : mode === 'vowelless'
+        ? generateVowellessPromptForRound(seed, nextRound)
+        : generatePromptForRound(seed, nextRound)
 
     setRound(nextRound)
     setPrompt(nextPrompt)
@@ -310,6 +312,13 @@ export default function Reverb({ seed, initialFlashSeconds, initialMode, already
                 type="button"
               >
                 dictionary
+              </button>
+              <button
+                className={`reverb-duration-button${mode === 'vowelless' ? ' is-active' : ''}`}
+                onClick={() => setMode('vowelless')}
+                type="button"
+              >
+                vowelless
               </button>
             </div>
           </div>

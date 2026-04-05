@@ -10,7 +10,7 @@ export default function ReverbRoute() {
   const flashParam = Number(searchParams.get('flash') ?? '1')
   const flashSeconds = flashParam === 0.5 || flashParam === 2 ? flashParam : 1
   const modeParam = searchParams.get('mode')
-  const initialMode: 'random' | 'dictionary' = modeParam === 'dictionary' ? 'dictionary' : 'random'
+  const initialMode: 'random' | 'dictionary' | 'vowelless' = modeParam === 'dictionary' ? 'dictionary' : modeParam === 'vowelless' ? 'vowelless' : 'random'
 
   if (seedParam && scoreParam) {
     const score = Number(scoreParam)

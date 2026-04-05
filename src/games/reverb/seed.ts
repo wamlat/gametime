@@ -1,4 +1,5 @@
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+const CONSONANTS = 'BCDFGHJKLMNPQRSTVWXZ'
 const START_LENGTH = 3
 export const MAX_LENGTH = 50
 export const MAX_ROUNDS = MAX_LENGTH - START_LENGTH + 1
@@ -78,6 +79,18 @@ export function markSeedAsPlayed(seed: string) {
   } catch {
     /* ignore */
   }
+}
+
+export function generateVowellessPromptForRound(seed: string, round: number) {
+  const rand = mulberry32(fnv1aHash(`${seed}:vowelless:${round}`))
+  const length = getLengthForRound(round)
+  let value = ''
+
+  for (let index = 0; index < length; index += 1) {
+    value += CONSONANTS[Math.floor(rand() * CONSONANTS.length)]
+  }
+
+  return value
 }
 
 export function generateDictPromptForRound(seed: string, round: number, wordsByLength: Map<number, string[]>): string {
