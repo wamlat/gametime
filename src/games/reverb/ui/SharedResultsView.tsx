@@ -6,7 +6,7 @@ interface Props {
   seed: string
   flashSeconds: number
   score: number
-  mode: 'random' | 'dictionary'
+  mode: 'random' | 'dictionary' | 'vowelless'
 }
 
 export function SharedResultsView({ seed, flashSeconds, score, mode }: Props) {
