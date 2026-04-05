@@ -9,7 +9,7 @@ type Phase = 'lobby' | 'revealing' | 'typing' | 'complete'
 type LossReason = 'incorrect' | 'timeout'
 type Mode = 'random' | 'dictionary'
 
-const DURATIONS = [1, 2, 5] as const
+const DURATIONS = [0.5, 1, 2] as const
 const ANSWER_SECONDS = 10
 
 const WORDS_BY_LENGTH: Map<number, string[]> = new Map()
