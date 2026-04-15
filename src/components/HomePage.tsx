@@ -37,6 +37,12 @@ const games = [
     description: 'Memorize a flashing string of letters, then type it back after it disappears. Every correct answer grows the string until your first miss ends the run.',
     tag: 'verbal',
   },
+  {
+    slug: 'counter',
+    title: 'counter',
+    description: 'A burst of shapes flashes on screen for one second. Count as many as you can, then type your best guess. Five rounds with increasing difficulty, lowest total error wins.',
+    tag: 'estimation',
+  },
 ]
 
 export default function HomePage() {

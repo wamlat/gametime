@@ -7,6 +7,7 @@ const gameNames: Record<string, string> = {
   '/tempo-tap': 'tempo tap',
   '/xornado': 'xornado',
   '/reverb': 'reverb',
+  '/counter': 'counter',
 }
 
 export default function StatusBar() {
